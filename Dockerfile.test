@@ -6,18 +6,14 @@ ENV SERVICE_USER="searxng" \
     SERVICE_HOME="/usr/local/searxng" \
     SEARXNG_SRC="/usr/local/searxng/searxng-src" \
     SEARXNG_PYENV="/usr/local/searxng/searx-pyenv" \
-    SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml" \
-    GIT_URL="https://github.com/searxng/searxng" \
-    GIT_BRANCH="master"
+    SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml"
 
-# 安装系统依赖包（从脚本中的SEARXNG_PACKAGES_debian提取）
+# 安装系统依赖包
 RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-babel \
     python3-venv \
     python-is-python3 \
-    uwsgi \
-    uwsgi-plugin-python3 \
     git \
     build-essential \
     libxslt-dev \
@@ -27,7 +23,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 创建searxng用户和目录（对应脚本中的searxng.install.user）
+# 创建searxng用户和目录
 RUN useradd --shell /bin/bash --system \
     --home-dir "${SERVICE_HOME}" \
     --comment 'Privacy-respecting metasearch engine' ${SERVICE_USER} \
@@ -38,49 +34,38 @@ RUN useradd --shell /bin/bash --system \
 USER ${SERVICE_USER}
 WORKDIR ${SERVICE_HOME}
 
-# 克隆SearXNG源码（对应脚本中的searxng.install.clone）
-RUN git clone "${GIT_URL}" "${SEARXNG_SRC}"
+# 克隆SearXNG源码
+RUN git clone "https://github.com/searxng/searxng" "${SEARXNG_SRC}"
 
-# 创建Python虚拟环境（对应脚本中的searxng.install.pyenv）
-RUN python3 -m venv "${SEARXNG_PYENV}" \
-    && echo ". ${SEARXNG_PYENV}/bin/activate" >> ~/.profile
+# 创建Python虚拟环境
+RUN python3 -m venv "${SEARXNG_PYENV}"
 
-# 更新pip并安装Python依赖
-RUN ${SEARXNG_PYENV}/bin/pip install -U pip setuptools wheel pyyaml
+# 更新pip并安装基础依赖
+RUN ${SEARXNG_PYENV}/bin/pip install -U pip setuptools wheel
 
-# 安装SearXNG到虚拟环境
-RUN cd "${SEARXNG_SRC}" && ${SEARXNG_PYENV}/bin/pip install --use-pep517 --no-build-isolation -e .
+# 安装SearXNG依赖和包（使用常规安装）
+RUN cd "${SEARXNG_SRC}" && ${SEARXNG_PYENV}/bin/pip install .
 
 # 切换回root用户创建配置目录
 USER root
 RUN mkdir -p /etc/searxng
 
-# 复制配置文件（需要提前准备好settings.yml）
+# 复制配置文件
 COPY settings.yml ${SEARXNG_SETTINGS_PATH}
 RUN chown -R ${SERVICE_USER}:${SERVICE_USER} /etc/searxng
 
-# 生成安全密钥（对应脚本中的密钥生成）
+# 生成安全密钥
 RUN sed -i "s/ultrasecretkey/$(openssl rand -hex 32)/g" "${SEARXNG_SETTINGS_PATH}"
-
-# 创建uWSGI运行目录
-RUN mkdir -p ${SERVICE_HOME}/run && chown -R ${SERVICE_USER}:${SERVICE_USER} ${SERVICE_HOME}/run
-
-# 复制uWSGI配置文件
-COPY searxng.ini /etc/uwsgi/apps-available/
-
-# 启用uWSGI应用
-RUN ln -sf /etc/uwsgi/apps-available/searxng.ini /etc/uwsgi/apps-enabled/
 
 # 切换回searxng用户运行
 USER ${SERVICE_USER}
 WORKDIR ${SEARXNG_SRC}
 
 # 设置环境变量
-ENV SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml" \
-    UWSGI_USE_SOCKET="true"
+ENV SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml"
 
 # 暴露端口
-EXPOSE 8848
+EXPOSE 8080
 
-# 启动命令 - 使用uWSGI
-CMD ["../searx-pyenv/bin/uwsgi", "--ini", "/etc/uwsgi/apps-available/searxng.ini"]
+# 启动命令 - 使用开发服务器
+CMD ["../searx-pyenv/bin/python", "searx/webapp.py"]
