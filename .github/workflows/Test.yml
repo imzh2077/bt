@@ -1,0 +1,33 @@
+name: Tar Image
+
+on:
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: btpanel
+  TARGET_PLATFORM: 'linux/amd64'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.test
+          platforms: ${{ env.TARGET_PLATFORM }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:test
+          push: ${{ github.event.inputs.push_to_registry == 'true' }}
+          outputs: type=docker,dest=/tmp/btpanel.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
