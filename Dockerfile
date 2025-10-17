@@ -72,8 +72,8 @@ RUN set -eux; \
     chmod +x /usr/local/bin/gitea
 
 # 复制Gitea初始化脚本
-COPY init_gitea.sh /
-RUN dos2unix /init_gitea.sh && chmod +x /init_gitea.sh
+# COPY init_gitea.sh /
+# RUN dos2unix /init_gitea.sh && chmod +x /init_gitea.sh
 
 # 打包宝塔面板，并清除www
 RUN bt 2 \
