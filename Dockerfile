@@ -1,4 +1,4 @@
-FROM btpanel/baota:nas
+FROM debian:bookworm
 
 # 安装 Gitea 1.21 二进制版 :cite[1]
 RUN set -eux; \
