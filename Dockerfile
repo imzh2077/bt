@@ -70,7 +70,6 @@ EXPOSE 22 80 443 888 3306 8888
 
 # 健康检查
 HEALTHCHECK --interval=5s --timeout=3s CMD prot="http"; if [ -f "/www/server/panel/data/ssl.pl" ]; then prot="https"; fi; curl -k -i $prot://127.0.0.1:$(cat /www/server/panel/data/port.pl)$(cat /www/server/panel/data/admin_path.pl) | grep -E '(200|404)' || exit 1
-
 # 安装 Gitea 1.21 二进制版 :cite[1]
 RUN set -eux; \
     adduser --system --shell /bin/bash --gecos 'Git Version Control' --group --disabled-password --home /home/git git; \
