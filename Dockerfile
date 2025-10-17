@@ -29,7 +29,6 @@ RUN dos2unix /bt.sh && dos2unix /init_mysql.sh
 # 下载并安装宝塔面板及nginx（保持原有逻辑）
 RUN curl -sSO https://download.bt.cn/install/install_panel.sh \
     && echo y | bash install_panel.sh -P 8888 --ssl-disable \
-    && btpip config set global.index-url https://mirrors.tencent.com/pypi/simple \
     && mkdir /lnmp \
     && curl -o /lnmp/nginx.sh https://download.bt.cn/install/3/nginx.sh \
     && bash /lnmp/nginx.sh install 1.26 \
