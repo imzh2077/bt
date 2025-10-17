@@ -2,6 +2,11 @@ name: GHCR Image
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '镜像标签（例如：v1.0.0）'
+        required: true
+        default: 'latest'
 
 env:
   IMAGE_NAME: btpanel
@@ -38,7 +43,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: ${{ env.TARGET_PLATFORM }}
-          tags: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:nginx-1.26
+          tags: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}
           push: true
           outputs: type=image
           cache-from: type=gha
