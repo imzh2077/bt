@@ -11,6 +11,7 @@ on:
 env:
   IMAGE_NAME: btpanel
   TARGET_PLATFORM: 'linux/amd64'
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   build:
