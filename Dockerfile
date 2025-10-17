@@ -39,7 +39,7 @@ RUN curl -sSO https://download.bt.cn/install/install_panel.sh \
     && btpip config set global.index-url https://mirrors.tencent.com/pypi/simple \
     && mkdir /lnmp \
     && curl -o /lnmp/nginx.sh https://download.bt.cn/install/3/nginx.sh \
-    && bash /lnmp/nginx.sh install 1.28 \
+    && bash /lnmp/nginx.sh install 1.26 \
     && rm -rf /lnmp \
     && rm -rf /www/server/nginx/src \
     && echo "docker_bt_nas" > /www/server/panel/data/o.pl \
