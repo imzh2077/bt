@@ -62,6 +62,23 @@ RUN set -eux; \
     wget -O /usr/local/bin/gitea https://dl.gitea.com/gitea/1.24.6/gitea-1.24.6-linux-amd64; \
     chmod +x /usr/local/bin/gitea
 
+# 安装SearXNG
+RUN apt-get update && apt-get install -y \
+    python3 python3-venv python3-pip git \
+    && apt-get clean
+# 创建工作目录
+WORKDIR /app
+# 克隆源码
+RUN git clone https://github.com/searxng/searxng.git searxng-src
+# 创建虚拟环境并安装
+RUN python3 -m venv searx-pyenv \
+    && searx-pyenv/bin/pip install -U pip \
+    && cd searxng-src && ../searx-pyenv/bin/pip install --use-pep517 --no-build-isolation -e .
+# 复制配置
+COPY settings.yml /etc/searxng/settings.yml
+# 设置环境
+ENV SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml"
+
 # 打包宝塔面板，并清除www
 RUN bt 2 \
     && tar -zcf /www.tar.gz /www \
