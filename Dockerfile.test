@@ -1,59 +1,52 @@
+# 基础镜像：Debian 12
 FROM debian:12
 
-# 环境变量配置
-ENV DEBIAN_FRONTEND=noninteractive \
-    SERVICE_USER=searxng \
-    SERVICE_HOME=/usr/local/searxng \
-    GIT_URL=https://github.com/searxng/searxng.git \
-    GIT_BRANCH=latest \
-    SEARXNG_PORT=8848
+# 关闭交互模式，避免APT提示
+ENV DEBIAN_FRONTEND=noninteractive
 
-# 派生路径变量
-ENV SEARXNG_SRC=${SERVICE_HOME}/searxng-src \
-    SEARXNG_PYENV=${SERVICE_HOME}/searx-pyenv \
-    SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml \  # 目标路径
-    SEARXNG_UWSGI_APP=searxng.ini
-
+# 安装依赖（不使用变量，直接写死包列表）
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3-dev python3-babel python3-venv python-is-python3 \
         uwsgi uwsgi-plugin-python3 \
         git build-essential libxslt-dev zlib1g-dev libffi-dev libssl-dev \
         openssl ca-certificates sudo && \
-    # 创建用户和目录
+    # 创建searxng用户和必要目录（路径硬编码）
     useradd --shell /bin/bash --system \
-        --home-dir ${SERVICE_HOME} \
-        --comment 'Privacy-respecting metasearch engine' ${SERVICE_USER} && \
-    mkdir -p ${SERVICE_HOME} ${SEARXNG_SRC} $(dirname ${SEARXNG_SETTINGS_PATH}) && \
-    chown -R ${SERVICE_USER}:${SERVICE_USER} ${SERVICE_HOME} /etc/searxng && \
-    # 克隆源码
-    sudo -u ${SERVICE_USER} git clone ${GIT_URL} ${SEARXNG_SRC} -b ${GIT_BRANCH} && \
-    # 构建虚拟环境
-    sudo -u ${SERVICE_USER} python -m venv ${SEARXNG_PYENV} && \
-    sudo -u ${SERVICE_USER} bash -c " \
-        source ${SEARXNG_PYENV}/bin/activate && \
+        --home-dir /usr/local/searxng \
+        --comment 'Privacy-respecting metasearch engine' searxng && \
+    mkdir -p /usr/local/searxng /usr/local/searxng/searxng-src /etc/searxng && \
+    chown -R searxng:searxng /usr/local/searxng /etc/searxng && \
+    # 克隆SearXNG源码（指定分支为latest，路径硬编码）
+    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src -b latest && \
+    # 构建Python虚拟环境（路径硬编码）
+    sudo -u searxng python -m venv /usr/local/searxng/searx-pyenv && \
+    sudo -u searxng bash -c " \
+        source /usr/local/searxng/searx-pyenv/bin/activate && \
         pip install -U pip setuptools wheel && \
         pip install msgspec pyyaml && \
-        cd ${SEARXNG_SRC} && \
+        cd /usr/local/searxng/searxng-src && \
         pip install --use-pep517 --no-build-isolation -e ." && \
-    # 清理缓存（先不复制文件，避免权限问题）
+    # 清理APT缓存
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# 关键步骤：复制本地settings.yml到容器内目标路径（单独用COPY，确保权限正确）
-COPY settings.yml ${SEARXNG_SETTINGS_PATH}
-# 设置文件所有者为searxng用户
-RUN chown ${SERVICE_USER}:${SERVICE_USER} ${SEARXNG_SETTINGS_PATH} && \
-    # 替换配置中的密钥（如果你的settings.yml有ultrasecretkey占位符）
-    sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" ${SEARXNG_SETTINGS_PATH}
+# 复制本地settings.yml到容器内（目标路径硬编码）
+COPY settings.yml /etc/searxng/settings.yml
 
-# 配置uWSGI
-RUN sudo -u ${SERVICE_USER} cp ${SEARXNG_SRC}/utils/templates/uwsgi.ini /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
-    sed -i "s|socket = .*|http = 0.0.0.0:${SEARXNG_PORT}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
-    sed -i "s|uid = .*|uid = ${SERVICE_USER}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
-    sed -i "s|chdir = .*|chdir = ${SEARXNG_SRC}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
-    sed -i "s|module = .*|module = searx.webapp:app|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP}
+# 设置配置文件权限并替换密钥
+RUN chown searxng:searxng /etc/searxng/settings.yml && \
+    sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" /etc/searxng/settings.yml
 
-EXPOSE ${SEARXNG_PORT}
+# 配置uWSGI（路径硬编码）
+RUN sudo -u searxng cp /usr/local/searxng/searxng-src/utils/templates/uwsgi.ini /etc/uwsgi/apps-available/searxng.ini && \
+    sed -i "s|socket = .*|http = 0.0.0.0:8848|g" /etc/uwsgi/apps-available/searxng.ini && \
+    sed -i "s|uid = .*|uid = searxng|g" /etc/uwsgi/apps-available/searxng.ini && \
+    sed -i "s|chdir = .*|chdir = /usr/local/searxng/searxng-src|g" /etc/uwsgi/apps-available/searxng.ini && \
+    sed -i "s|module = .*|module = searx.webapp:app|g" /etc/uwsgi/apps-available/searxng.ini
 
+# 暴露端口（固定8848）
+EXPOSE 8848
+
+# 启动命令（路径硬编码）
 CMD ["uwsgi", "--ini", "/etc/uwsgi/apps-available/searxng.ini"]
