@@ -15,24 +15,24 @@ start_gitea() {
     sleep 10
     
     # 初始化Gitea配置（如果不存在）
-    if [ ! -f /etc/gitea/app.ini ]; then
-        echo "Initializing Gitea configuration..."
-        sudo -u git /usr/local/bin/gitea web --config /etc/gitea/app.ini &
-        GITEA_PID=$!
-        sleep 15
+    # if [ ! -f /etc/gitea/app.ini ]; then
+    #    echo "Initializing Gitea configuration..."
+    #    sudo -u git /usr/local/bin/gitea web --config /etc/gitea/app.ini &
+    #    GITEA_PID=$!
+    #    sleep 15
         # 关闭初始化的Gitea进程
-        kill $GITEA_PID 2>/dev/null || true
-        wait $GITEA_PID 2>/dev/null || true
+    #    kill $GITEA_PID 2>/dev/null || true
+    #    wait $GITEA_PID 2>/dev/null || true
         
         # 设置基本配置（可根据需要调整）
-        if [ -f /etc/gitea/app.ini ]; then
-            sed -i 's/HTTP_PORT = 3000/HTTP_PORT = 3000/g' /etc/gitea/app.ini
-            sed -i 's/ROOT_URL = http:/ROOT_URL = http:/g' /etc/gitea/app.ini
-            sed -i 's/SSH_PORT = 22/SSH_PORT = 2222/g' /etc/gitea/app.ini
+    #    if [ -f /etc/gitea/app.ini ]; then
+    #        sed -i 's/HTTP_PORT = 3000/HTTP_PORT = 3000/g' /etc/gitea/app.ini
+    #        sed -i 's/ROOT_URL = http:/ROOT_URL = http:/g' /etc/gitea/app.ini
+    #        sed -i 's/SSH_PORT = 22/SSH_PORT = 2222/g' /etc/gitea/app.ini
             # 设置SQLite3为默认数据库以简化部署
-            sed -i 's/DB_TYPE = mysql/DB_TYPE = sqlite3/g' /etc/gitea/app.ini 2>/dev/null || true
-        fi
-    fi
+    #        sed -i 's/DB_TYPE = mysql/DB_TYPE = sqlite3/g' /etc/gitea/app.ini 2>/dev/null || true
+    #    fi
+    #fi
     
     # 设置权限
     chown -R git:git /var/lib/gitea /etc/gitea
