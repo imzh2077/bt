@@ -1,28 +1,64 @@
+# 基础镜像：Debian 12（与Gitea基础镜像保持一致，避免兼容性问题）
 FROM debian:12
 
-ENV DEBIAN_FRONTEND=noninteractive
+# 1. 环境变量配置（复刻官方脚本核心参数，固定配置避免交互）
+ENV DEBIAN_FRONTEND=noninteractive \
+    # 官方脚本默认Git仓库与分支
+    GIT_URL=https://github.com/searxng/searxng.git \
+    GIT_BRANCH=master \
+    # 官方脚本定义的SearXNG目录结构
+    SERVICE_USER=searxng \
+    SERVICE_HOME=/usr/local/searxng \
+    SEARXNG_SRC=${SERVICE_HOME}/searxng-src \
+    SEARXNG_PYENV=${SERVICE_HOME}/searx-pyenv \
+    SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml \
+    SEARXNG_UWSGI_APP=searxng.ini \
+    # uWSGI配置：容器内用HTTP端口（便于外部访问，替代socket）
+    SEARXNG_PORT=8848
 
-# 1. 安装依赖（补充 python-is-python3 解决 python 命令问题）
+# 2. 安装SearXNG官方依赖（完全复刻SEARXNG_PACKAGES_debian）
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
-        ca-certificates \
-        python3 \
-        python3-pip \
-        python-is-python3  # 关键：让 python 命令指向 python3 \
-        build-essential \
-        && \
-    # 2. 克隆仓库
-    mkdir -p /root/Downloads && \
-    cd /root/Downloads && \
-    git clone https://github.com/searxng/searxng.git searxng && \
-    cd searxng && \
-    # 3. 修改安装脚本，跳过 systemctl 相关步骤（或使用无服务模式）
-    # 方式：编辑脚本，注释掉依赖 systemctl 的部分，或用参数禁用
-    # 这里直接修改脚本中调用 systemctl 的逻辑（临时适配容器环境）
-    sed -i '/systemctl/d' ./utils/searxng.sh && \
-    # 4. 执行安装脚本（此时已跳过 systemctl 相关命令）
-    ./utils/searxng.sh install all && \
-    # 清理缓存
+        # 官方核心依赖：Python环境、uWSGI、编译工具
+        python3-dev python3-babel python3-venv python-is-python3 \
+        uwsgi uwsgi-plugin-python3 \
+        git build-essential libxslt-dev zlib1g-dev libffi-dev libssl-dev \
+        # 补充工具：生成配置密钥、HTTPS克隆源码
+        openssl ca-certificates sudo && \
+    # 3. 创建SearXNG服务用户（严格遵循官方useradd参数）
+    useradd --shell /bin/bash --system \
+        --home-dir ${SERVICE_HOME} \
+        --comment 'Privacy-respecting metasearch engine' ${SERVICE_USER} && \
+    # 创建所需目录并配置权限
+    mkdir -p ${SERVICE_HOME} ${SEARXNG_SRC} $(dirname ${SEARXNG_SETTINGS_PATH}) && \
+    chown -R ${SERVICE_USER}:${SERVICE_USER} ${SERVICE_HOME} && \
+    # 4. 克隆SearXNG源码（切换searxng用户，避免root权限问题）
+    sudo -u ${SERVICE_USER} git clone ${GIT_URL} ${SEARXNG_SRC} -b ${GIT_BRANCH} && \
+    # 5. 构建Python虚拟环境（复刻官方pyenv初始化逻辑）
+    sudo -u ${SERVICE_USER} python -m venv ${SEARXNG_PYENV} && \
+    # 激活虚拟环境并安装Python依赖（同一shell执行，确保环境生效）
+    sudo -u ${SERVICE_USER} bash -c " \
+        source ${SEARXNG_PYENV}/bin/activate && \
+        pip install -U pip setuptools wheel pyyaml && \
+        cd ${SEARXNG_SRC} && \
+        pip install --use-pep517 --no-build-isolation -e ." && \
+    # 6. 生成SearXNG配置文件（自动替换密钥，复刻官方安全逻辑）
+    sudo -u ${SERVICE_USER} cp ${SEARXNG_SRC}/utils/templates/settings.yml ${SEARXNG_SETTINGS_PATH} && \
+    sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" ${SEARXNG_SETTINGS_PATH} && \
+    chown ${SERVICE_USER}:${SERVICE_USER} ${SEARXNG_SETTINGS_PATH} && \
+    # 7. 配置uWSGI（适配Docker，不依赖systemd）
+    sudo -u ${SERVICE_USER} cp ${SEARXNG_SRC}/utils/templates/uwsgi.ini /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
+    # 修改uWSGI配置：绑定容器内HTTP端口、指定用户和工作目录
+    sed -i "s|socket = .*|http = 0.0.0.0:${SEARXNG_PORT}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
+    sed -i "s|uid = .*|uid = ${SERVICE_USER}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
+    sed -i "s|chdir = .*|chdir = ${SEARXNG_SRC}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
+    sed -i "s|module = .*|module = searx.webapp:app|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
+    # 8. 清理APT缓存，减小镜像体积
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 暴露SearXNG端口（与uWSGI配置一致）
+EXPOSE ${SEARXNG_PORT}
+
+# 启动入口：前台运行uWSGI（确保容器不退出，符合Docker最佳实践）
+CMD ["uwsgi", "--ini", "/etc/uwsgi/apps-available/searxng.ini"]
