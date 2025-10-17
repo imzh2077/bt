@@ -1,4 +1,4 @@
-name: AMD64 Code-Server Environment Image
+name: Tar Image
 
 on:
   workflow_dispatch:
