@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SERVICE_USER=searxng \
     SERVICE_HOME=/usr/local/searxng \
     GIT_URL=https://github.com/searxng/searxng.git \
-    GIT_BRANCH=master \
+    GIT_BRANCH=searxng \
     SEARXNG_PORT=8848
 
 # 派生路径变量
