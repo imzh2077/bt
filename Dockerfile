@@ -38,7 +38,7 @@ RUN curl -sSO https://download.bt.cn/install/install_panel.sh \
     && echo y | bash install_panel.sh -P 8888 --ssl-disable \
     && mkdir /lnmp \
     && curl -o /lnmp/nginx.sh https://download.bt.cn/install/3/nginx.sh \
-    && bash /lnmp/nginx.sh install 1.26 \
+    && bash /lnmp/nginx.sh install 1.28 \
     && rm -rf /lnmp \
     && rm -rf /www/server/nginx/src \
     && echo "docker_bt_nas" > /www/server/panel/data/o.pl \
