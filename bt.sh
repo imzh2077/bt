@@ -106,4 +106,15 @@ start_mysql > /dev/null
 soft_start > /dev/null
 #tail -f /dev/null
 init_panel > /dev/null
+
+# 启动自定义脚本，如果存在则后台执行，即使失败也不影响
+if [ -f /www/start-software.sh ]; then
+    echo "启动自定义脚本..."
+    bash /www/start-software.sh > /dev/null 2>&1 &
+else
+    echo "自定义脚本不存在，跳过..."
+fi
+
+sleep 5
+
 ${init_path}/bt log
