@@ -9,7 +9,7 @@ on:
         default: 'latest'
 
 env:
-  IMAGE_NAME: code-server-with-env
+  IMAGE_NAME: btpanel
   TARGET_PLATFORM: 'linux/amd64'
 
 jobs:
@@ -34,15 +34,15 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}
             ${{ env.IMAGE_NAME }}:latest
           push: ${{ github.event.inputs.push_to_registry == 'true' }}
-          outputs: type=docker,dest=/tmp/code-server-with-env_AMD64.tar
+          outputs: type=docker,dest=/tmp/btpanel.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Save image as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: code-server-with-env
-          path: /tmp/code-server-with-env_AMD64.tar
+          name: btpanel
+          path: /tmp/btpanel.tar
           retention-days: 1
 
       - name: Display image info
