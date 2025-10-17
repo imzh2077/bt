@@ -18,7 +18,7 @@ RUN apt-get update && \
     mkdir -p /usr/local/searxng /usr/local/searxng/searxng-src /etc/searxng && \
     chown -R searxng:searxng /usr/local/searxng /etc/searxng && \
     # 克隆SearXNG源码（指定分支为latest，路径硬编码）
-    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src -b latest && \
+    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src -b master && \
     # 构建Python虚拟环境（路径硬编码）
     sudo -u searxng python -m venv /usr/local/searxng/searx-pyenv && \
     sudo -u searxng bash -c " \
