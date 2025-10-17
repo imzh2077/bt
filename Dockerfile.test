@@ -1,7 +1,6 @@
-# 基础镜像：Debian 12
 FROM debian:12
 
-# 1. 先定义基础路径变量，再用其派生其他变量（解决变量未定义问题）
+# 定义环境变量（确保变量顺序正确）
 ENV DEBIAN_FRONTEND=noninteractive \
     SERVICE_USER=searxng \
     SERVICE_HOME=/usr/local/searxng \
@@ -9,45 +8,49 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GIT_BRANCH=master \
     SEARXNG_PORT=8848
 
-# 基于SERVICE_HOME派生其他路径（确保变量引用正确）
+# 派生路径变量
 ENV SEARXNG_SRC=${SERVICE_HOME}/searxng-src \
     SEARXNG_PYENV=${SERVICE_HOME}/searx-pyenv \
     SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml \
     SEARXNG_UWSGI_APP=searxng.ini
 
-# 2. 安装依赖并修复权限问题
+# 安装依赖（补充可能缺失的Python库）
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        # 基础依赖
         python3-dev python3-babel python3-venv python-is-python3 \
         uwsgi uwsgi-plugin-python3 \
         git build-essential libxslt-dev zlib1g-dev libffi-dev libssl-dev \
         openssl ca-certificates sudo && \
-    # 3. 创建服务用户并严格配置目录权限
+    # 创建服务用户和目录
     useradd --shell /bin/bash --system \
         --home-dir ${SERVICE_HOME} \
         --comment 'Privacy-respecting metasearch engine' ${SERVICE_USER} && \
-    # 手动创建所有需要的目录，并强制设置所有者（解决权限问题）
     mkdir -p ${SERVICE_HOME} ${SEARXNG_SRC} $(dirname ${SEARXNG_SETTINGS_PATH}) && \
     chown -R ${SERVICE_USER}:${SERVICE_USER} ${SERVICE_HOME} /etc/searxng && \
-    # 4. 切换到searxng用户克隆仓库（确保路径正确且有权限）
+    # 克隆源码
     sudo -u ${SERVICE_USER} git clone ${GIT_URL} ${SEARXNG_SRC} -b ${GIT_BRANCH} && \
-    # 5. 构建Python虚拟环境
+    # 构建虚拟环境并安装依赖（先手动安装缺失的msgspec）
     sudo -u ${SERVICE_USER} python -m venv ${SEARXNG_PYENV} && \
     sudo -u ${SERVICE_USER} bash -c " \
         source ${SEARXNG_PYENV}/bin/activate && \
-        pip install -U pip setuptools wheel pyyaml && \
+        # 升级工具链
+        pip install -U pip setuptools wheel && \
+        # 手动安装缺失的依赖（msgspec是核心依赖）
+        pip install msgspec pyyaml && \
+        # 安装SearXNG editable模式
         cd ${SEARXNG_SRC} && \
         pip install --use-pep517 --no-build-isolation -e ." && \
-    # 6. 生成配置文件并替换密钥
+    # 生成配置文件
     sudo -u ${SERVICE_USER} cp ${SEARXNG_SRC}/utils/templates/settings.yml ${SEARXNG_SETTINGS_PATH} && \
     sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" ${SEARXNG_SETTINGS_PATH} && \
-    # 7. 配置uWSGI
+    # 配置uWSGI
     sudo -u ${SERVICE_USER} cp ${SEARXNG_SRC}/utils/templates/uwsgi.ini /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
     sed -i "s|socket = .*|http = 0.0.0.0:${SEARXNG_PORT}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
     sed -i "s|uid = .*|uid = ${SERVICE_USER}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
     sed -i "s|chdir = .*|chdir = ${SEARXNG_SRC}|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
     sed -i "s|module = .*|module = searx.webapp:app|g" /etc/uwsgi/apps-available/${SEARXNG_UWSGI_APP} && \
-    # 8. 清理缓存
+    # 清理缓存
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
