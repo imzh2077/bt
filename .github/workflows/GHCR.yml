@@ -2,11 +2,6 @@ name: GHCR Image
 
 on:
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: '镜像标签（例如：v1.0.0）'
-        required: true
-        default: 'latest'
 
 env:
   IMAGE_NAME: btpanel
@@ -43,29 +38,8 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: ${{ env.TARGET_PLATFORM }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.image_tag }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
-          push: true # 确保此值为 true，以推送到注册表
-          outputs: type=image # 使用 image 输出类型以便推送
+          tags: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+          push: true
+          outputs: type=image
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Save image as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: btpanel
-          path: /tmp/btpanel.tar
-          retention-days: 1
-
-      - name: Display image info
-        run: |
-          echo "镜像构建完成！"
-          echo "镜像名称: ${{ env.IMAGE_NAME }}"
-          echo "镜像标签: ${{ github.event.inputs.image_tag }}"
-          echo "目标平台: ${{ env.TARGET_PLATFORM }}"
-          if [ "${{ github.event.inputs.push_to_registry }}" = "true" ]; then
-            echo "已推送到 Docker Hub"
-          else
-            echo "镜像已保存为工作流产物，可在 Artifacts 中下载"
-          fi
