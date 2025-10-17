@@ -63,21 +63,23 @@ RUN set -eux; \
     chmod +x /usr/local/bin/gitea
 
 # 安装SearXNG
-RUN apt-get update && apt-get install -y \
-    python3 python3-venv python3-pip git \
-    && apt-get clean
-# 创建工作目录
-WORKDIR /app
-# 克隆源码
-RUN git clone https://github.com/searxng/searxng.git searxng-src
-# 创建虚拟环境并安装
-RUN python3 -m venv searx-pyenv \
-    && searx-pyenv/bin/pip install -U pip \
-    && cd searxng-src && ../searx-pyenv/bin/pip install --use-pep517 --no-build-isolation -e .
-# 复制配置
-COPY settings.yml /etc/searxng/settings.yml
-# 设置环境
-ENV SEARXNG_SETTINGS_PATH="/etc/searxng/settings.yml"
+ENV DEBIAN_FRONTEND=noninteractive
+# 安装依赖、克隆仓库并执行安装脚本
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+        python3 \
+        python3-pip \
+        build-essential \
+        && \
+    mkdir -p /root/Downloads && \
+    cd /root/Downloads && \
+    git clone https://github.com/searxng/searxng.git searxng && \
+    cd searxng && \
+    ./utils/searxng.sh install all && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # 打包宝塔面板，并清除www
 RUN bt 2 \
