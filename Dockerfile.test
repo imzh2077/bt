@@ -1,0 +1,28 @@
+FROM debian:12
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1. 安装依赖（补充 python-is-python3 解决 python 命令问题）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        ca-certificates \
+        python3 \
+        python3-pip \
+        python-is-python3  # 关键：让 python 命令指向 python3 \
+        build-essential \
+        && \
+    # 2. 克隆仓库
+    mkdir -p /root/Downloads && \
+    cd /root/Downloads && \
+    git clone https://github.com/searxng/searxng.git searxng && \
+    cd searxng && \
+    # 3. 修改安装脚本，跳过 systemctl 相关步骤（或使用无服务模式）
+    # 方式：编辑脚本，注释掉依赖 systemctl 的部分，或用参数禁用
+    # 这里直接修改脚本中调用 systemctl 的逻辑（临时适配容器环境）
+    sed -i '/systemctl/d' ./utils/searxng.sh && \
+    # 4. 执行安装脚本（此时已跳过 systemctl 相关命令）
+    ./utils/searxng.sh install all && \
+    # 清理缓存
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
