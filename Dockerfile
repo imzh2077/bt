@@ -2,7 +2,6 @@ FROM debian:bookworm-slim
 
 # 切换 Debian 镜像源为腾讯云源，更新包列表并安装依赖
 RUN set -eux; \
-    sed -i 's/deb.debian.org/mirrors.tencent.com/g' /etc/apt/sources.list.d/debian.sources || true; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
     mkdir -p /etc/apt/keyrings; \
