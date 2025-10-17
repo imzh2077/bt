@@ -1,4 +1,4 @@
-name: Tar Image
+name: Test Image
 
 on:
   workflow_dispatch:
