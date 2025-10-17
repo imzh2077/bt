@@ -63,31 +63,34 @@ RUN set -eux; \
     chmod +x /usr/local/bin/gitea
 
 # 安装SearXNG
-ENV DEBIAN_FRONTEND=noninteractive
-# 1. 安装依赖（补充 python-is-python3 解决 python 命令问题）
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        git \
-        ca-certificates \
-        python3 \
-        python3-pip \
-        python-is-python3  # 关键：让 python 命令指向 python3 \
-        build-essential \
-        && \
-    # 2. 克隆仓库
-    mkdir -p /root/Downloads && \
-    cd /root/Downloads && \
-    git clone https://github.com/searxng/searxng.git searxng && \
-    cd searxng && \
-    # 3. 修改安装脚本，跳过 systemctl 相关步骤（或使用无服务模式）
-    # 方式：编辑脚本，注释掉依赖 systemctl 的部分，或用参数禁用
-    # 这里直接修改脚本中调用 systemctl 的逻辑（临时适配容器环境）
-    sed -i '/systemctl/d' ./utils/searxng.sh && \
-    # 4. 执行安装脚本（此时已跳过 systemctl 相关命令）
-    ./utils/searxng.sh install all && \
-    # 清理缓存
+        python3-dev python3-babel python3-venv python-is-python3 \
+        uwsgi uwsgi-plugin-python3 \
+        git build-essential libxslt-dev zlib1g-dev libffi-dev libssl-dev \
+        openssl ca-certificates sudo && \
+    useradd --shell /bin/bash --system \
+        --home-dir /usr/local/searxng \
+        --comment 'Privacy-respecting metasearch engine' searxng && \
+    mkdir -p /usr/local/searxng /usr/local/searxng/searxng-src /etc/searxng /etc/uwsgi/apps-available && \
+    chown -R searxng:searxng /usr/local/searxng /etc/searxng && \
+    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src && \
+    sudo -u searxng python -m venv /usr/local/searxng/searx-pyenv && \
+    sudo -u searxng bash -c " \
+        source /usr/local/searxng/searx-pyenv/bin/activate && \
+        pip install -U pip setuptools wheel && \
+        pip install msgspec pyyaml && \
+        cd /usr/local/searxng/searxng-src && \
+        pip install --use-pep517 --no-build-isolation -e ." && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# 复制本地配置文件（settings.yml和searxng.ini）
+COPY settings.yml /etc/searxng/settings.yml
+COPY searxng.ini /etc/uwsgi/apps-available/searxng.ini
+# 设置配置文件权限
+RUN chown searxng:searxng /etc/searxng/settings.yml /etc/uwsgi/apps-available/searxng.ini && \
+    # 替换settings.yml中的密钥（如果有占位符）
+    sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" /etc/searxng/settings.yml
 
 # 打包宝塔面板，并清除www
 RUN bt 2 \
