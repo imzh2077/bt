@@ -2,7 +2,7 @@ FROM btpanel/baota:nas
 
 # 复制脚本，支持自定义启动程序
 COPY ["bt.sh", "/"]
-RUN dos2unix /bt.sh
+RUN dos2unix /bt.sh && chmod +x /bt.sh
 
 # 安装Gitea
 RUN set -eux; \
