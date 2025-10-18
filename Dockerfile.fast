@@ -1,5 +1,9 @@
 FROM btpanel/baota:nas
 
+# 复制脚本，支持自定义启动程序
+COPY ["bt.sh", "/"]
+RUN dos2unix /bt.sh && dos2unix /init_mysql.sh
+
 # 安装Gitea
 RUN set -eux; \
     adduser --system --shell /bin/bash --gecos 'Git Version Control' --group --disabled-password --home /home/git git; \
@@ -21,12 +25,11 @@ RUN apt-get update && \
     chown -R searxng:searxng /usr/local/searxng /etc/searxng && \
     # 克隆源码
     sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src && \
-    # 构建虚拟环境并安装依赖（修复httpx安装语法）
+    # 构建虚拟环境并安装依赖
     sudo -u searxng python -m venv /usr/local/searxng/searx-pyenv && \
     sudo -u searxng bash -c " \
         source /usr/local/searxng/searx-pyenv/bin/activate && \
         pip install -U pip setuptools wheel && \
-        # 修复带括号依赖的语法（用双引号+转义）
         pip install \
             certifi==2025.10.5 \
             babel==2.17.0 \
@@ -50,23 +53,14 @@ RUN apt-get update && \
             isodate==0.7.2 \
             whitenoise==6.11.0 \
             typing-extensions==4.14.1 && \
-        # 关键：验证httpx是否安装成功（失败则构建终止）
-        echo '验证httpx安装...' && \
-        python -c 'import httpx; print(\"httpx版本:\", httpx.__version__)' && \
         # 安装SearXNG editable模式
         cd /usr/local/searxng/searxng-src && \
         pip install --use-pep517 --no-build-isolation -e . && \
-        # 再次验证SearXNG是否能导入httpx
-        echo '验证SearXNG依赖...' && \
-        python -c 'from searx import network; print(\"SearXNG成功导入httpx\")' " && \
-    # 清理缓存
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
 # 复制配置文件
 COPY settings.yml /etc/searxng/settings.yml
 COPY searxng.ini /etc/uwsgi/apps-available/searxng.ini
-
 # 设置权限并替换密钥
 RUN chown searxng:searxng /etc/searxng/settings.yml /etc/uwsgi/apps-available/searxng.ini && \
     sed -i "s/ultrasecretkey/$(openssl rand -hex 16)/g" /etc/searxng/settings.yml
