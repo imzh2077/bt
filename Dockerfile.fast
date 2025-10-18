@@ -55,7 +55,7 @@ sudo -u searxng bash -c " \
         typing-extensions==4.14.1 && \
         # 安装SearXNG editable模式
         cd /usr/local/searxng/searxng-src && \
-        pip install --use-pep517 --no-build-isolation -e . \" && \
+        pip install --use-pep517 --no-build-isolation -e ." && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # 复制配置文件
