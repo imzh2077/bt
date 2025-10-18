@@ -18,7 +18,7 @@ RUN apt-get update && \
     mkdir -p /usr/local/searxng /usr/local/searxng/searxng-src /etc/searxng /etc/uwsgi/apps-available && \
     chown -R searxng:searxng /usr/local/searxng /etc/searxng && \
     # 克隆源码
-    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src -b latest && \
+    sudo -u searxng git clone https://github.com/searxng/searxng.git /usr/local/searxng/searxng-src && \
     # 构建虚拟环境并安装依赖（修复httpx安装语法）
     sudo -u searxng python -m venv /usr/local/searxng/searx-pyenv && \
     sudo -u searxng bash -c " \
