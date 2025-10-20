@@ -2,16 +2,14 @@ FROM btpanel/baota:nas
 
 # 换源回官方源，加速Github Action构建，加入常见调试工具
 RUN set -eux; \
-    # 恢复 Debian 官方源（bookworm 格式）- 直接覆盖文件
-    printf "Types: deb\nURIs: https://deb.debian.org/debian\nSuites: bookworm bookworm-updates bookworm-backports\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\nTypes: deb\nURIs: https://security.debian.org/debian-security\nSuites: bookworm-security\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n" > /etc/apt/sources.list.d/debian.sources \
+    sed -i 's/mirrors.tencent.com/deb.debian.org/g' /etc/apt/sources.list.d/debian.sources || true; \
     \
-    # 恢复 Docker 官方源 - 直接覆盖文件而不是先删除
-    && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
-    && chmod a+r /etc/apt/keyrings/docker.asc \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc; \
+    chmod a+r /etc/apt/keyrings/docker.asc; \
+    . /etc/os-release; \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian/ ${VERSION_CODENAME} stable" \
+      > /etc/apt/sources.list.d/docker.list; \
     \
-    # 更新包列表
     && apt-get update \
     \
     # 安装网络调试工具
