@@ -1,5 +1,65 @@
 FROM btpanel/baota:nas
 
+# 换源回官方源，加速Github Action构建，加入常见调试工具
+RUN set -eux; \
+    cat > /etc/apt/sources.list.d/debian.sources << 'EOF'
+Types: deb
+URIs: https://deb.debian.org/debian
+Suites: bookworm bookworm-updates bookworm-backports
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: https://security.debian.org/debian-security
+Suites: bookworm-security
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+    \
+    rm -f /etc/apt/sources.list.d/docker.list; \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc; \
+    chmod a+r /etc/apt/keyrings/docker.asc; \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list; \
+    \
+    apt-get update; \
+    \
+    apt-get install -y --no-install-recommends \
+        iputils-ping \
+        dnsutils \
+        net-tools \
+        iproute2 \
+        curl \
+        wget \
+        tcpdump \
+        netcat-openbsd \
+        traceroute \
+        mtr-tiny \
+        iperf3 \
+        nmap \
+        telnet \
+        openssh-client \
+        ca-certificates \
+        ; \
+    \
+    apt-get install -y --no-install-recommends \
+        htop \
+        atop \
+        iotop \
+        iftop \
+        nethogs \
+        lsof \
+        procps \
+        sysstat \
+        strace \
+        ltrace \
+        file \
+        tree \
+        jq \
+        vim \
+        nano \
+        ; \
+    \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*;
+
 # 复制脚本，支持自定义启动程序
 COPY ["bt.sh", "/"]
 RUN dos2unix /bt.sh && chmod +x /bt.sh
