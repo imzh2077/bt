@@ -30,7 +30,7 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # 复制脚本，设置环境变量
-COPY ["bt.sh", "init_mysql.sh", "/"]
+COPY ["baota/bt.sh", "baota/init_mysql.sh", "/"]
 
 # 转换启动脚本
 RUN dos2unix /bt.sh && dos2unix /init_mysql.sh
