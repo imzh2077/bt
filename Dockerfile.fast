@@ -3,7 +3,6 @@ FROM btpanel/baota:nas
 # 换源回官方源，加速Github Action构建，加入常见调试工具
 RUN set -eux; \
     sed -i 's/mirrors.tencent.com/deb.debian.org/g' /etc/apt/sources.list.d/debian.sources || true; \
-    apt-get update; \
     mkdir -p /etc/apt/keyrings; \
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc; \
     chmod a+r /etc/apt/keyrings/docker.asc; \
