@@ -15,8 +15,8 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
       locales wget iproute2 openssh-server cmake make gcc g++ autoconf sudo curl dos2unix build-essential libonig-dev libxml2-dev libxslt-dev \
       docker-ce-cli \
-      #iputils-ping dnsutils net-tools iproute2 curl wget tcpdump netcat-openbsd traceroute mtr-tiny iperf3 nmap telnet openssh-client ca-certificates \ 
-      htop atop iotop iftop nethogs lsof procps sysstat strace ltrace file tree jq vim nano; \
+      iputils-ping dnsutils net-tools iproute2 curl wget tcpdump netcat-openbsd traceroute mtr-tiny iperf3 nmap telnet openssh-client ca-certificates \ 
+      # htop atop iotop iftop nethogs lsof procps sysstat strace ltrace file tree jq vim nano; \
     sed -i 's/^# *\(en_US.UTF-8 UTF-8\)/\1/' /etc/locale.gen; \
     locale-gen en_US.UTF-8; \
     update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8; \
