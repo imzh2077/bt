@@ -4,6 +4,7 @@ FROM btpanel/baota:nas
 RUN set -eux; \
     sed -i 's/mirrors.tencent.com/deb.debian.org/g' /etc/apt/sources.list.d/debian.sources || true; \
     apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
     mkdir -p /etc/apt/keyrings;
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc; \
     chmod a+r /etc/apt/keyrings/docker.asc; \
