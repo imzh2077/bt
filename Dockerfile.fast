@@ -12,40 +12,13 @@ RUN set -eux; \
       > /etc/apt/sources.list.d/docker.list; \
     apt-get update; \
     apt-get -y upgrade; \
-    && apt-get install -y --no-install-recommends \
-        iputils-ping \
-        dnsutils \
-        net-tools \
-        iproute2 \
-        curl \
-        wget \
-        tcpdump \
-        netcat-openbsd \
-        traceroute \
-        mtr-tiny \
-        iperf3 \
-        nmap \
-        telnet \
-        openssh-client \
-        ca-certificates \
-    && apt-get install -y --no-install-recommends \
-        htop \
-        atop \
-        iotop \
-        iftop \
-        nethogs \
-        lsof \
-        procps \
-        sysstat \
-        strace \
-        ltrace \
-        file \
-        tree \
-        jq \
-        vim \
-        nano \
-    && apt-get clean \
-    && find /var/lib/apt/lists -type f -delete;
+    apt-get install -y --no-install-recommends \
+        iputils-ping dnsutils net-tools iproute2 curl wget tcpdump netcat-openbsd traceroute mtr-tiny iperf3 nmap telnet openssh-client ca-certificates; \
+    apt-get install -y --no-install-recommends \
+        htop atop iotop iftop nethogs lsof procps sysstat strace ltrace file tree jq vim nano; \
+    apt-get autoremove -y; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 
 # 复制脚本，支持自定义启动程序
